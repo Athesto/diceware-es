@@ -1,7 +1,3 @@
-Aquí tienes una versión mejorada, más clara y estructurada de tu README. Mantiene tu idea pero organiza mejor el flujo y hace más explícitas las decisiones:
-
-⸻
-
 Diceware Español (Lista Curada)
 
 Este proyecto construye una lista de palabras estilo Diceware en español,
