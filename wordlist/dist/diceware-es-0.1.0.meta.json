@@ -1,0 +1,18 @@
+{
+  "name": "diceware-es-0.1.0.txt",
+  "version": "0.1.0",
+  "charset": "us-ascii",
+  "source": [
+    "diccionario-4-comun.txt",
+    "diccionario-5-comun.txt",
+    "diccionario-6-comun.txt",
+    "diccionario-7-comun.txt",
+    "diccionario-8-comun.txt"
+  ],
+  "words": 7776,
+  "checksum":{
+    "algorithm": "sha256",
+    "file": "diceware-es-0.1.0.txt",
+    "value": "4556ac156a73f025983a46ee854098e81e02e71b2c837ff11e6074e642c98c74  diceware-es-0.1.0.txt"
+  }
+}
