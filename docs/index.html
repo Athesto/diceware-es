@@ -1,7 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Generador de contraseñas seguras usando el método Diceware en español">
   <title>Diceware Español</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
   <style>
@@ -13,13 +15,15 @@
       flex-direction: column;
       gap: 2rem;
     }
-    .separator {
+    .separator-input {
       text-align: center;
     }
     .passphrase {
-      font-size: 1.2rem;
       font-family: monospace;
+      font-size: 1.1rem;
       text-align: center;
+      overflow-wrap: anywhere;
+      word-break: break-word;
     }
     .actions {
       display: grid;
@@ -54,6 +58,17 @@
           <li>La lista tiene 7776 palabras.</li>
           <li>Se repite el proceso para crear una frase de paso.</li>
         </ul>
+
+        <h3>Cómo usar esta herramienta:</h3>
+        <ol>
+          <li><strong>Elige el separador:</strong> Selecciona el carácter que separará las palabras (guión, punto, etc.)</li>
+          <li><strong>Ajusta el número de palabras:</strong> Usa el slider para elegir entre 4 y 6 palabras. Más palabras = contraseña más fuerte.</li>
+          <li><strong>Genera tu contraseña:</strong> Haz clic en "Generar" para crear una nueva frase de paso.</li>
+          <li><strong>Copia la contraseña:</strong> Haz clic en "Copiar" para copiarla al portapapeles.</li>
+          <li><strong>Memorización:</strong> Intenta memorizar la frase - son palabras comunes en español, más fáciles de recordar que caracteres aleatorios.</li>
+        </ol>
+
+        <p><small><strong>💡 Consejo:</strong> Una frase de 5 palabras es segura para la mayoría de usos. 6 palabras es muy segura incluso para datos críticos.</small></p>
       </article>
 
       <article>
@@ -61,14 +76,15 @@
         <div class="controls">
           <label>
             Separador:
-            <input id="separador" class="separator" v-model="separator" placeholder="Sep">
+            <input id="separador" class="separator-input" v-model="separator" placeholder="Sep">
           </label>
           <label>
             Número de palabras: {{ words_number }}
-            <input id="words" type="range" min="4" max="6" v-model="words_number" @input="reroll" >
+            <input id="words" type="range" min="4" max="8" v-model="words_number" @input="reroll" >
           </label>
         </div>
-        <input id="passphrase" class="passphrase" type="text" v-model="passphrase" readonly >
+        <article id="passphrase" class="passphrase" > {{passphrase}} </article>
+        <p><small>Caracteres: {{ passphrase.length }} | Palabras: {{ words_number }}</small></p>
         <div class="actions">
           <button @click="reroll"> Generar </button>
           <button class="secondary" @click="copy"> {{ copied ? 'Copiado!' : 'Copiar' }} </button>
@@ -126,8 +142,8 @@
       setup() {
         const copied = ref(false);
         const passphrase = ref("");
-        const words_number = ref(4);
-        const separator = ref(".");
+        const words_number = ref(5);
+        const separator = ref(" ");
 
         onMounted(async ()=>{
           diceware.words_number = words_number.value
