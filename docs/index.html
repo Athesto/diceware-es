@@ -62,7 +62,7 @@
         <h3>Cómo usar esta herramienta:</h3>
         <ol>
           <li><strong>Elige el separador:</strong> Selecciona el carácter que separará las palabras (guión, punto, etc.)</li>
-          <li><strong>Ajusta el número de palabras:</strong> Usa el slider para elegir entre 4 y 6 palabras. Más palabras = contraseña más fuerte.</li>
+          <li><strong>Ajusta el número de palabras:</strong> Usa el slider para elegir entre 4 y 8 palabras. Más palabras = contraseña más fuerte.</li>
           <li><strong>Genera tu contraseña:</strong> Haz clic en "Generar" para crear una nueva frase de paso.</li>
           <li><strong>Copia la contraseña:</strong> Haz clic en "Copiar" para copiarla al portapapeles.</li>
           <li><strong>Memorización:</strong> Intenta memorizar la frase - son palabras comunes en español, más fáciles de recordar que caracteres aleatorios.</li>
@@ -79,7 +79,7 @@
             <input id="separador" class="separator-input" v-model="separator" placeholder="Sep">
           </label>
           <label>
-            Número de palabras: {{ words_number }}
+            Número de palabras del Diceware: {{ words_number }}
             <input id="words" type="range" min="4" max="8" v-model="words_number" @input="reroll" >
           </label>
         </div>
@@ -88,13 +88,71 @@
           Incluir mayúscula y número
         </label>
         <article id="passphrase" class="passphrase" > {{passphrase}} </article>
-        <p><small>Caracteres: {{ passphrase.length }} | Palabras: {{ words_number }}</small></p>
+        <p><small>Chars: {{ passphrase.length }} | Palabras: {{ total_words }} | Entropía: {{ entropy }} bits</small></p>
         <div class="actions">
           <button @click="reroll"> Generar </button>
           <button class="secondary" @click="copy"> {{ copied ? 'Copiado!' : 'Copiar' }} </button>
         </div>
       </article>
     </section>
+    <details>
+      <summary>¿Qué es la entropía?</summary>
+      <article>
+        <p>
+          La entropía mide qué tan difícil es adivinar una contraseña.
+          Se expresa en <strong>bits</strong> y depende del número de
+          combinaciones posibles.
+        </p>
+        <p>
+          En este generador, cada palabra se elige de una lista de
+          <strong>7776 palabras</strong>. Cada palabra aporta aproximadamente
+          <strong>12.9 bits</strong> de entropía.
+        </p>
+        <ul>
+          <li>4 palabras ≈ 52 bits → bueno</li>
+          <li>5 palabras ≈ 65 bits → fuerte</li>
+          <li>6 palabras ≈ 78 bits → muy fuerte</li>
+        </ul>
+        <p>
+          Agregar números o mayúsculas ayuda a cumplir requisitos de algunas
+          páginas, pero la mayor seguridad viene de usar más palabras.
+        </p>
+        <p>
+          <small>
+            💡 Recomendación: usa al menos 5 palabras para contraseñas
+            importantes.
+          </small>
+        </p>
+      </article>
+    </details>
+    <details>
+      <summary>Ver lista completa (7776 palabras)</summary>
+
+      <article>
+        <p>
+          Puedes consultar o descargar la lista completa utilizada por este generador:
+        </p>
+
+        <p>
+          <a :href="diceware_path" target="_blank">
+            Abrir lista completa
+          </a>
+        </p>
+
+        <p>
+          <a :href="diceware_path" download>
+            Descargar archivo
+          </a>
+        </p>
+
+        <p>
+          <small>
+            La lista contiene 7776 palabras únicas en español,
+            diseñadas para maximizar la entropía en el método Diceware.
+          </small>
+        </p>
+      </article>
+    </details>
   </main>
   <script type="module">
     import { createApp, ref, onMounted } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js'
@@ -131,6 +189,14 @@
         return this.word_list;
       },
 
+      entropyTotal(words, usePolicy) {
+      let entropy = words * Math.log2(this.word_list.length);
+      if (usePolicy) {
+          entropy += Math.log2(100 * 26)
+        }
+        return entropy
+      },
+
       async run (){
         const word_list = await this.load_file();
         const selected_words = []
@@ -141,14 +207,12 @@
         }
 
         if (this.use_policy) {
-          // añadir al final un número aleatorio y una mayúscula
-          let last_word = ""
-          let random_digit = this.secureRandomInt(100); // Consume un número aleatorio para el dígito
-          last_word += random_digit.toString();
+          // añadir un número aleatorio y una mayúscula
+          let random_digit = String(this.secureRandomInt(100)).padStart(2, "0"); // Consume un número aleatorio para el dígito
           let random_letter = String.fromCharCode(65 + this.secureRandomInt(26)); // Consume otro número aleatorio para la letra mayúscula
-          last_word += random_letter;
-          let random_index = this.secureRandomInt(selected_words.length); // Consume otro número aleatorio para la posición
-          selected_words.splice(random_index, 0, last_word); // Inserta el nuevo elemento
+          let random_index = this.secureRandomInt(selected_words.length + 1); // Consume otro número aleatorio para la posición
+          let new_word = `${random_letter}${random_digit}`;
+          selected_words.splice(random_index, 0, new_word); // Inserta el nuevo elemento
         }
 
         return selected_words.join(this.separator)
@@ -159,16 +223,12 @@
       setup() {
         const copied = ref(false);
         const passphrase = ref("");
-        const words_number = ref(5);
+        const words_number = ref(4);
         const separator = ref(" ");
         const use_policy = ref(true);
-
-        onMounted(async ()=>{
-          diceware.words_number = words_number.value;
-          diceware.separator = separator.value;
-          diceware.use_policy = use_policy.value;
-          passphrase.value = await diceware.run();
-        });
+        const total_words = ref(0);
+        const diceware_path = ref(diceware.diceware_path);
+        const entropy = ref(0);
 
         const copy = async () => {
           await navigator.clipboard.writeText(passphrase.value);
@@ -182,9 +242,19 @@
           diceware.words_number = words_number.value;
           diceware.separator = separator.value;
           diceware.use_policy = use_policy.value;
+
           passphrase.value = await diceware.run();
+
+          entropy.value = diceware.entropyTotal(words_number.value, use_policy.value).toFixed(2);
+
+          total_words.value = passphrase.value
+          .split(separator.value)
+          .filter(Boolean)
+          .length;
         }
-        return { passphrase, copied, copy, reroll, words_number, separator, use_policy}
+
+        onMounted(reroll);
+        return { passphrase, copied, copy, reroll, words_number, separator, use_policy, total_words, diceware_path, entropy}
       }
 
 
