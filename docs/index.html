@@ -3,22 +3,157 @@
 <head>
   <meta charset="UTF-8">
   <title>Diceware Español</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <style>
+    main.container {
+      max-width: 900px;
+      margin: auto;
+      padding-top: 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+    .separator {
+      text-align: center;
+    }
+    .passphrase {
+      font-size: 1.2rem;
+      font-family: monospace;
+      text-align: center;
+    }
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr 10fr;
+      gap: 5rem;
+      align-items: end;
+    }
+    @media (max-width: 768px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
 </head>
 <body>
-  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-  <div id="app">{{ message }}</div>
+  <main id="app" class="container">
+    <section class="layout">
+      <article>
+        <h1>Diceware en Español</h1>
+        <p>
+          El Diceware es un método para generar contraseñas seguras
+          usando palabras elegidas al azar.
+        </p>
+        <ul>
+          <li>Se usan dados físicos o números aleatorios seguros.</li>
+          <li>Cada combinación apunta a una palabra.</li>
+          <li>La lista tiene 7776 palabras.</li>
+          <li>Se repite el proceso para crear una frase de paso.</li>
+        </ul>
+      </article>
 
-  <script>
-    const { createApp, ref } = Vue
+      <article>
+        <h2>Generador</h2>
+        <div class="controls">
+          <label>
+            Separador:
+            <input id="separador" class="separator" v-model="separator" placeholder="Sep">
+          </label>
+          <label>
+            Número de palabras: {{ words_number }}
+            <input id="words" type="range" min="4" max="6" v-model="words_number" @input="reroll" >
+          </label>
+        </div>
+        <input id="passphrase" class="passphrase" type="text" v-model="passphrase" readonly >
+        <div class="actions">
+          <button @click="reroll"> Generar </button>
+          <button class="secondary" @click="copy"> {{ copied ? 'Copiado!' : 'Copiar' }} </button>
+        </div>
+      </article>
+    </section>
+  </main>
+  <script type="module">
+    import { createApp, ref, onMounted } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js'
+
+    const diceware = {
+      diceware_path: "data/diceware-es-0.1.0.txt",
+      words_number: 4,
+      separator: '.',
+      word_list: [],
+
+      secureRandomInt(max) {
+        const maxUint32 = 0xFFFFFFFF;
+        const limit = maxUint32 - (maxUint32 % max);
+        const a = new Uint32Array(1);
+        do {
+          crypto.getRandomValues(a);
+        } while (a[0] >= limit);
+        return a[0] % max;
+      },
+
+      async load_file() {
+        if (this.word_list.length) return this.word_list;
+
+        const res = await fetch(this.diceware_path);
+        const res_text = await res.text();
+
+        this.word_list = res_text
+          .split(/\r?\n/)
+          .map(l => l.trim().toLowerCase())
+          .filter(Boolean); // elimina vacíos
+
+        return this.word_list;
+      },
+
+      async run (){
+        const word_list = await this.load_file();
+        const selected_words = []
+
+        for (let i = 0; i < this.words_number; i++){
+          let index = this.secureRandomInt(word_list.length)
+          selected_words.push(word_list[index])
+        }
+
+        return selected_words.join(this.separator)
+      }
+    }
 
     createApp({
       setup() {
-        const message = ref('Hello vue!')
-        return {
-          message
+        const copied = ref(false);
+        const passphrase = ref("");
+        const words_number = ref(4);
+        const separator = ref(".");
+
+        onMounted(async ()=>{
+          diceware.words_number = words_number.value
+          diceware.separator = separator.value
+          passphrase.value = await diceware.run();
+        });
+
+        const copy = async () => {
+          await navigator.clipboard.writeText(passphrase.value);
+          copied.value = true;
+          setTimeout(() => {
+            copied.value = false;
+          }, 1500);
+        };
+
+        const reroll = async () => {
+          diceware.words_number = words_number.value
+          diceware.separator = separator.value
+          passphrase.value = await diceware.run();
         }
+        return { passphrase, copied, copy, reroll, words_number, separator}
       }
+
+
     }).mount('#app')
   </script>
+
 </body>
 </html>
