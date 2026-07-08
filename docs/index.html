@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Generador de contraseñas Diceware en español. Crea frases de paso seguras usando palabras comunes. Personaliza el número de palabras y el separador. Fácil de usar y recordar.">
   <title>Diceware Español - Generador Seguro de Contraseñas | Athesto</title>
+  <link rel="icon" href="/favicon.ico" sizes="any">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
   <style>
     [v-cloak] {
@@ -166,7 +167,7 @@
   </main>
   <script type="module">
     import { createApp, ref, onMounted } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.prod.js'
-    import { Diceware } from 'https://cdn.jsdelivr.net/gh/athesto/diceware-es@v0.2.0/cdn/diceware.js'
+    import { Diceware } from 'https://cdn.jsdelivr.net/gh/athesto/diceware-es@v0.3.0/lib/diceware.js'
 
     createApp({
       setup() {
