@@ -36,6 +36,13 @@
       gap: 5rem;
       align-items: end;
     }
+    .output {
+      background: color-mix(in srgb, var(--pico-background-color), white 8%);
+      border: 1px solid var(--pico-muted-border-color);
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03);
+    }
     @media (max-width: 768px) {
       .layout {
         grid-template-columns: 1fr;
@@ -76,22 +83,22 @@
         <div class="controls">
           <label>
             Separador:
-            <input id="separador" class="separator-input" v-model="separator" placeholder="Sep">
+            <input id="separador" class="separator-input" v-model="separator" placeholder="Sep" maxlength="1">
           </label>
           <label>
-            Número de palabras del Diceware: {{ words_number }}
-            <input id="words" type="range" min="4" max="8" v-model="words_number" @input="reroll" >
+            Número de palabras del Diceware: {{ wordsNumber }}
+            <input id="words" type="range" min="4" max="8" v-model.number="wordsNumber" @input="reroll" >
           </label>
         </div>
         <label>
-          <input type="checkbox" v-model="use_policy" @change="reroll">
+          <input type="checkbox" v-model="usePolicy" @change="reroll">
           Incluir mayúscula y número
         </label>
-        <article id="passphrase" class="passphrase" > {{passphrase}} </article>
-        <p><small>Chars: {{ passphrase.length }} | Palabras: {{ total_words }} | Entropía: {{ entropy }} bits</small></p>
+        <article id="passphrase" class="passphrase output" > {{passphrase}} </article>
+        <p><small>Chars: {{ passphrase.length }} | Palabras: {{ totalWords }} | Entropía: {{ entropy }} bits</small></p>
         <div class="actions">
-          <button @click="reroll"> Generar </button>
-          <button class="secondary" @click="copy"> {{ copied ? 'Copiado!' : 'Copiar' }} </button>
+          <button @click="reroll"> 🔄 Generar </button >
+          <button class="secondary" @click="copy"> {{ copied ? '📋 Copiado! ✅' : '📋 Copiar' }} </button>
         </div>
       </article>
     </section>
@@ -134,13 +141,13 @@
         </p>
 
         <p>
-          <a :href="diceware_path" target="_blank">
+          <a :href="wordListUrl" target="_blank">
             Abrir lista completa
           </a>
         </p>
 
         <p>
-          <a :href="diceware_path" download>
+          <a :href="wordListUrl" download>
             Descargar archivo
           </a>
         </p>
@@ -155,79 +162,19 @@
     </details>
   </main>
   <script type="module">
-    import { createApp, ref, onMounted } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js'
-
-    const diceware = {
-      diceware_path: "data/diceware-es-0.1.0.txt",
-      words_number: 4,
-      separator: '.',
-      word_list: [],
-      use_policy: true,
-
-      secureRandomInt(max, min = 0) {
-        const range = max - min;
-        const maxUint32 = 0xFFFFFFFF;
-        const limit = maxUint32 - (maxUint32 % range);
-        const a = new Uint32Array(1);
-        do {
-          crypto.getRandomValues(a);
-        } while (a[0] >= limit);
-        return min + (a[0] % range);
-      },
-
-      async load_file() {
-        if (this.word_list.length) return this.word_list;
-
-        const res = await fetch(this.diceware_path);
-        const res_text = await res.text();
-
-        this.word_list = res_text
-          .split(/\r?\n/)
-          .map(l => l.trim().toLowerCase())
-          .filter(Boolean); // elimina vacíos
-
-        return this.word_list;
-      },
-
-      entropyTotal(words, usePolicy) {
-      let entropy = words * Math.log2(this.word_list.length);
-      if (usePolicy) {
-          entropy += Math.log2(100 * 26)
-        }
-        return entropy
-      },
-
-      async run (){
-        const word_list = await this.load_file();
-        const selected_words = []
-
-        for (let i = 0; i < this.words_number; i++){
-          let index = this.secureRandomInt(word_list.length)
-          selected_words.push(word_list[index])
-        }
-
-        if (this.use_policy) {
-          // añadir un número aleatorio y una mayúscula
-          let random_digit = String(this.secureRandomInt(100)).padStart(2, "0"); // Consume un número aleatorio para el dígito
-          let random_letter = String.fromCharCode(65 + this.secureRandomInt(26)); // Consume otro número aleatorio para la letra mayúscula
-          let random_index = this.secureRandomInt(selected_words.length + 1); // Consume otro número aleatorio para la posición
-          let new_word = `${random_letter}${random_digit}`;
-          selected_words.splice(random_index, 0, new_word); // Inserta el nuevo elemento
-        }
-
-        return selected_words.join(this.separator)
-      }
-    }
+    import { createApp, ref, onMounted } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.prod.js'
+    import { Diceware } from 'https://cdn.jsdelivr.net/gh/athesto/diceware-es/cdn/diceware.js'
 
     createApp({
       setup() {
+        const diceware = new Diceware();
+
         const copied = ref(false);
         const passphrase = ref("");
-        const words_number = ref(4);
-        const separator = ref(" ");
-        const use_policy = ref(true);
-        const total_words = ref(0);
-        const diceware_path = ref(diceware.diceware_path);
+        const wordsNumber = ref(diceware.wordsNumber);
+        const separator = ref(diceware.separator);
+        const usePolicy = ref(diceware.usePolicy);
+        const totalWords = ref(0);
         const entropy = ref(0);
 
         const copy = async () => {
@@ -239,25 +186,30 @@
         };
 
         const reroll = async () => {
-          diceware.words_number = words_number.value;
           diceware.separator = separator.value;
-          diceware.use_policy = use_policy.value;
+          diceware.usePolicy = usePolicy.value;
+          diceware.wordsNumber = wordsNumber.value;
 
-          passphrase.value = await diceware.run();
+          passphrase.value = await diceware.generate();
+          entropy.value = diceware.entropy().toFixed(2);
 
-          entropy.value = diceware.entropyTotal(words_number.value, use_policy.value).toFixed(2);
-
-          total_words.value = passphrase.value
-          .split(separator.value)
-          .filter(Boolean)
-          .length;
+          totalWords.value = diceware.wordsNumber + (usePolicy.value ? 1 : 0); // Añadir 1 si se usa la política
         }
 
         onMounted(reroll);
-        return { passphrase, copied, copy, reroll, words_number, separator, use_policy, total_words, diceware_path, entropy}
+        return { 
+          copied,
+          copy,
+          entropy,
+          passphrase,
+          reroll,
+          separator,
+          totalWords,
+          usePolicy,
+          wordListUrl: diceware.wordListUrl,
+          wordsNumber
+        }
       }
-
-
     }).mount('#app')
   </script>
 
