@@ -1,21 +1,21 @@
 const CDN_BASE_URL = "https://cdn.jsdelivr.net/gh/athesto/diceware-es";
 const WORD_LIST_PATH = "/wordlist/dist";
-const DEFAULT_VERSION = "latest";
+const DEFAULT_WORDLIST_VERSION = "latest";
 const DEFAULT_SEPARATOR = ".";
 const DEFAULT_WORDS_NUMBER = 4;
-const DEFAULT_USE_POLICY = true;
+const DEFAULT_ADD_UPPERCASE_NUMERIC_TOKEN = true;
 
 export class Diceware {
   constructor({
-    version = DEFAULT_VERSION,
+    addUppercaseNumericToken = DEFAULT_ADD_UPPERCASE_NUMERIC_TOKEN,
     separator = DEFAULT_SEPARATOR,
+    wordListVersion = DEFAULT_WORDLIST_VERSION,
     wordsNumber = DEFAULT_WORDS_NUMBER,
-    usePolicy = DEFAULT_USE_POLICY,
   } = {}) {
-    this.version = version;
+    this.wordListVersion = wordListVersion;
     this.separator = separator;
     this.wordsNumber = wordsNumber;
-    this.usePolicy = usePolicy;
+    this.addUppercaseNumericToken = addUppercaseNumericToken;
 
     this.wordList = [];
   }
@@ -33,7 +33,7 @@ export class Diceware {
   }
 
   get wordListUrl() {
-    return `${CDN_BASE_URL}/${WORD_LIST_PATH}/diceware-es-${this.version}.txt`;
+    return `${CDN_BASE_URL}${WORD_LIST_PATH}/diceware-es-${this.wordListVersion}.txt`;
   }
 
   async load() {
@@ -47,7 +47,7 @@ export class Diceware {
     }
 
     const text = (await response.text()).trim();
-    this.wordList = text.split(/\r?\n/);
+    this.wordList = text.split(/\r?\n/).map((word) => word.toLowerCase());
 
     return this.wordList;
   }
@@ -57,7 +57,7 @@ export class Diceware {
       return 0;
     }
     let entropy = this.wordsNumber * Math.log2(this.wordList.length);
-    if (this.usePolicy) {
+    if (this.addUppercaseNumericToken) {
       entropy += Math.log2(100 * 26);
     }
 
@@ -73,7 +73,7 @@ export class Diceware {
       selectedWords.push(this.wordList[index]);
     }
 
-    if (this.usePolicy) {
+    if (this.addUppercaseNumericToken) {
       const digit = String(Diceware.secureRandomInt(100)).padStart(2, "0");
       const letter = String.fromCharCode(65 + Diceware.secureRandomInt(26));
       const position = Diceware.secureRandomInt(selectedWords.length + 1);
