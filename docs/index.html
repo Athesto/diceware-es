@@ -7,6 +7,9 @@
   <title>Diceware Español - Generador Seguro de Contraseñas | Athesto</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
   <style>
+    [v-cloak] {
+      display: none;
+    }
     main.container {
       max-width: 900px;
       margin: auto;
@@ -51,7 +54,7 @@
   </style>
 </head>
 <body>
-  <main id="app" class="container">
+  <main id="app" class="container" v-cloak>
     <section class="layout">
       <article>
         <h1>Diceware en Español</h1>
@@ -91,7 +94,7 @@
           </label>
         </div>
         <label>
-          <input type="checkbox" v-model="usePolicy" @change="reroll">
+          <input type="checkbox" v-model="addUppercaseNumericToken" @change="reroll">
           Incluir mayúscula y número
         </label>
         <article id="passphrase" class="passphrase output" > {{passphrase}} </article>
@@ -163,7 +166,7 @@
   </main>
   <script type="module">
     import { createApp, ref, onMounted } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.prod.js'
-    import { Diceware } from 'https://cdn.jsdelivr.net/gh/athesto/diceware-es/cdn/diceware.js'
+    import { Diceware } from 'https://cdn.jsdelivr.net/gh/athesto/diceware-es@v0.2.0/cdn/diceware.js'
 
     createApp({
       setup() {
@@ -173,7 +176,7 @@
         const passphrase = ref("");
         const wordsNumber = ref(diceware.wordsNumber);
         const separator = ref(diceware.separator);
-        const usePolicy = ref(diceware.usePolicy);
+        const addUppercaseNumericToken = ref(diceware.addUppercaseNumericToken);
         const totalWords = ref(0);
         const entropy = ref(0);
 
@@ -187,13 +190,13 @@
 
         const reroll = async () => {
           diceware.separator = separator.value;
-          diceware.usePolicy = usePolicy.value;
+          diceware.addUppercaseNumericToken = addUppercaseNumericToken.value;
           diceware.wordsNumber = wordsNumber.value;
 
           passphrase.value = await diceware.generate();
           entropy.value = diceware.entropy().toFixed(2);
 
-          totalWords.value = diceware.wordsNumber + (usePolicy.value ? 1 : 0); // Añadir 1 si se usa la política
+          totalWords.value = diceware.wordsNumber + (addUppercaseNumericToken.value ? 1 : 0); // Añadir 1 si se usa la política
         }
 
         onMounted(reroll);
@@ -205,7 +208,7 @@
           reroll,
           separator,
           totalWords,
-          usePolicy,
+          addUppercaseNumericToken,
           wordListUrl: diceware.wordListUrl,
           wordsNumber
         }
